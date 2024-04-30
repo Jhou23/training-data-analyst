@@ -54,13 +54,17 @@ def splitPackageName(packageName):
    result.append(packageName)
    return result
 
+# get package from lines when it has key work import
 def getPackages(line, keyword):
    start = line.find(keyword) + len(keyword)
    end = line.find(';', start)
    if start < end:
-      packageName = line[start:end].strip()
+      packageName = line[start:end].strip()  
       return splitPackageName(packageName)
    return []
+# if a str i.e.  sasdflkjasdf; it does not have keywork 'import', but it has a ; in the end. then the string will still be recorded as packagename.
+# there must be some way to avoid this edge cases.
+# if line.startwith(keyword) avoided the above situation. Got it.
 
 def packageUse(record, keyword):
    if record is not None:
@@ -86,18 +90,18 @@ def packageHelp(record, keyword):
      lines=record.split('\n')
      for line in lines:
        if line.startswith(keyword):
-         package_name=line
+         package_name=line                             # directly assign line to package_name
        if 'FIXME' in line or 'TODO' in line:
          count+=1
      packages = (getPackages(package_name, keyword) )
      for p in packages:
-         yield (p,count)
+         yield (p,count)                               # broadcast the count to all packages
 
 def needs_help(pcoll):
  return (pcoll
     | 'PackageHelp' >> beam.FlatMap(lambda rowdict: packageHelp(rowdict['content'], 'package'))
     | 'TotalHelp' >> beam.CombinePerKey(sum)
-    | 'DropZero' >> beam.Filter(lambda packages: packages[1]>0 ) )
+    | 'DropZero' >> beam.Filter(lambda packages: packages[1]>0 ) )   ## only keep packages has fix or to dos
 
 
 # Calculate the final composite score
@@ -187,4 +191,4 @@ def run():
 
 
 if __name__ == '__main__':
-  run()
+  run()   ## run() is the function defined above.
